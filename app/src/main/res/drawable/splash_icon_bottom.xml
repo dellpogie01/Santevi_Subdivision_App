@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Hexagonal Node Frame -->
+    <path
+        android:pathData="M60,26 L88,42 L88,74 L60,90 L32,74 L32,42 Z"
+        android:strokeWidth="2.5"
+        android:strokeColor="#FF38BDF8"
+        android:strokeAlpha="0.8" />
+
+    <!-- Central Node -->
+    <path
+        android:pathData="M60,60m-14,0a14,14 0,1 1,28 0a14,14 0,1 1,-28 0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="74"
+                android:endY="74"
+                android:startX="46"
+                android:startY="46"
+                android:type="linear">
+                <item android:color="#FF06B6D4" android:offset="0.0" />
+                <item android:color="#FF3B82F6" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Radiating Lines -->
+    <path
+        android:pathData="M60,46 L60,26 M88,42 L72,52 M88,74 L72,68 M60,74 L60,90 M32,74 L48,68 M32,42 L48,52"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFF"
+        android:strokeAlpha="0.6" />
+
+    <!-- Corner Dots -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M60,26m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0 M88,42m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0 M88,74m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0 M60,90m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0 M32,74m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0 M32,42m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+
+</vector>

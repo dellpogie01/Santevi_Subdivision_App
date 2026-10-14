@@ -1,0 +1,12 @@
+{
+  "name": "santevi-firestore-rules-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:rules": "npx.cmd --yes firebase-tools@15.33.0 --project demo-santevi-rules emulators:exec --only firestore,storage \"node --test tests/firestore.rules.test.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.0.0"
+  }
+}

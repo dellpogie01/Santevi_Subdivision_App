@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "android-app-builder": {
+      "source": "mouchegmouradian/claude-code-skills",
+      "sourceType": "github",
+      "skillPath": "skills/android-app-builder/SKILL.md",
+      "computedHash": "10bce69bf640370a6c067f44f616f82dd542b70d06c0ed5d1b50a9e539a9e020"
+    }
+  }
+}

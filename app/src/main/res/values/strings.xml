@@ -1,0 +1,36 @@
+<resources>
+    <string name="app_name">Santevi</string>
+    <string name="app_tagline">A PREMIER SUBDIVISION COMMUNITY BY</string>
+    <string name="welcome_back">Welcome Back</string>
+    <string name="welcome_login_subtitle">Sign in to stay connected with your community.</string>
+    <string name="welcome_signup">Join the Santevi Official Community App</string>
+    <string name="create_account_heading">CREATE AN ACCOUNT</string>
+    <string name="create_account_instruction">Create your account to get started.</string>
+    <string name="email_label">Email Address</string>
+    <string name="email_placeholder">name@example.com</string>
+    <string name="confirm_email_label">Confirm Email Address</string>
+    <string name="confirm_email_placeholder">name@example.com</string>
+    <string name="password_label">Password</string>
+    <string name="confirm_password_label">Confirm Password</string>
+    <string name="username_label">Username</string>
+    <string name="username_placeholder">juandelacruz_26</string>
+    <string name="remember_me">Remember Me</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="login_button">LOGIN</string>
+    <string name="or_login_with">OR LOGIN WITH</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="no_account_prompt">Don\'t have an account? Sign up here</string>
+    <string name="already_have_account_prompt">Already have an account? Log in</string>
+    <string name="agree_terms_prefix">I agree to the </string>
+    <string name="terms_of_service">Terms of Service</string>
+    <string name="terms_and_conjunction"> and </string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="create_account_button">CREATE ACCOUNT</string>
+    <string name="reset_password_heading">RESET PASSWORD</string>
+    <string name="reset_password_instruction">Enter your registered email address to receive password reset instructions.</string>
+    <string name="send_reset_link">SEND RESET LINK</string>
+    <string name="back_to_login">BACK TO LOGIN</string>
+    <string name="sign_out">SIGN OUT</string>
+    <string name="resend_verification">RESEND VERIFICATION EMAIL</string>
+    <string name="refresh_status">REFRESH STATUS</string>
+</resources>

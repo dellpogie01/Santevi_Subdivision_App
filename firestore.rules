@@ -1,0 +1,459 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Assumed privileged authorization source: only Firebase Auth custom claim
+    // admin=true is trusted. Role/profile documents are never authorization.
+    // User bootstrap fields are uid/email/username, Visitor role, isAdmin=false,
+    // roleRequestStatus=none, accountStatus=active, and server timestamps.
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        ('admin' in request.auth.token) &&
+        request.auth.token.admin == true;
+    }
+
+    function owns(field) {
+      return signedIn() && resource.data[field] == request.auth.uid;
+    }
+
+    function canPublishCommunityContent() { return isAdmin(); }
+
+    function published(data) {
+      return (('publicationStatus' in data) && data.publicationStatus == 'published') ||
+        (('status' in data) && data.status == 'published') ||
+        (('isPublished' in data) && data.isPublished == true);
+    }
+
+    function validCommonPublication(data) {
+      return (!('publicationStatus' in data) || data.publicationStatus in ['draft', 'published', 'unpublished', 'archived']) &&
+        (!('status' in data) || data.status in ['draft', 'published', 'unpublished', 'archived', 'cancelled']) &&
+        (!('isPublished' in data) || data.isPublished is bool) &&
+        (!('isPinned' in data) || data.isPinned is bool) &&
+        (!('pinned' in data) || data.pinned is bool) &&
+        (!('archived' in data) || data.archived is bool) &&
+        (!('authorUid' in data) || (data.authorUid is string && data.authorUid.size() <= 128)) &&
+        (!('author' in data) || (data.author is string && data.author.size() <= 120)) &&
+        (!('imageUrl' in data) || validOptionalHttpsUrl(data, 'imageUrl')) &&
+        (!('createdAt' in data) || data.createdAt is timestamp) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+        (!('expiresAt' in data) || data.expiresAt is timestamp);
+    }
+
+    function validAnnouncement(data) {
+      return data.keys().hasOnly(['title','date','summary','fullText','message','createdAt','updatedAt','createdByUid','authorUid','author','imageUrl','publicationStatus','status','isPublished','pinned','isPinned','archived','expiresAt']) &&
+        data.keys().hasAll(['title']) && validString(data, 'title', 160) &&
+        data.keys().hasAll(['createdAt']) && data.createdAt is timestamp &&
+        ((!('message' in data) && 'fullText' in data && data.fullText is string && data.fullText.size() <= 10000) ||
+         (('message' in data) && data.message is string && data.message.size() <= 10000)) &&
+        validOptionalString(data, 'date', 100) && validOptionalString(data, 'summary', 2000) &&
+        validOptionalString(data, 'fullText', 10000) && validOptionalString(data, 'createdByUid', 128) &&
+        validCommonPublication(data);
+    }
+
+    function validEvent(data) {
+      return data.keys().hasOnly(['eventName','title','date','startTime','endTime','location','venue','description','createdAt','updatedAt','createdByUid','authorUid','imageUrl','publicationStatus','status','isPublished','expiresAt']) &&
+        ((('eventName' in data) && validString(data, 'eventName', 160)) || (('title' in data) && validString(data, 'title', 160))) &&
+        data.keys().hasAll(['date','description','createdAt']) && data.createdAt is timestamp && validString(data, 'date', 100) &&
+        data.description is string && data.description.size() <= 4000 &&
+        validOptionalString(data, 'location', 200) && validOptionalString(data, 'venue', 200) &&
+        validOptionalString(data, 'startTime', 20) && validOptionalString(data, 'endTime', 20) &&
+        validOptionalString(data, 'createdByUid', 128) && validCommonPublication(data);
+    }
+
+    function validReservation(data) {
+      return data.keys().hasOnly(['amenityName','date','startTime','endTime','location','instructions','capacity','availability','publicationStatus','status','isPublished','createdAt','updatedAt','createdByUid']) &&
+        data.keys().hasAll(['amenityName','date','createdAt']) && data.createdAt is timestamp && validString(data, 'amenityName', 160) &&
+        validString(data, 'date', 100) && validOptionalString(data, 'startTime', 20) &&
+        validOptionalString(data, 'endTime', 20) && validOptionalString(data, 'location', 200) &&
+        validOptionalString(data, 'instructions', 2000) && validOptionalString(data, 'availability', 100) &&
+        (!('capacity' in data) || (data.capacity is int && data.capacity >= 0 && data.capacity <= 100000)) &&
+        validOptionalString(data, 'createdByUid', 128) && validCommonPublication(data);
+    }
+
+    function validEmergencyContact(data) {
+      return data.keys().hasOnly(['name','organization','category','phoneNumber','address','instructions','displayOrder','active','isPublished','publicationStatus','createdAt','updatedAt','createdByUid']) &&
+        data.keys().hasAll(['name','phoneNumber','active','createdAt']) && data.createdAt is timestamp && validString(data, 'name', 120) &&
+        validString(data, 'phoneNumber', 40) && data.active is bool &&
+        validOptionalString(data, 'organization', 120) && validOptionalString(data, 'category', 80) &&
+        validOptionalString(data, 'address', 300) && validOptionalString(data, 'instructions', 1000) &&
+        (!('displayOrder' in data) || (data.displayOrder is int && data.displayOrder >= 0 && data.displayOrder <= 10000)) &&
+        validOptionalString(data, 'createdByUid', 128) && validCommonPublication(data);
+    }
+
+    function validString(data, field, maxLength) {
+      return data[field] is string &&
+        data[field].size() > 0 &&
+        data[field].size() <= maxLength;
+    }
+
+    function validOptionalString(data, field, maxLength) {
+      return !(field in data) ||
+        (data[field] is string && data[field].size() <= maxLength);
+    }
+
+    function validOptionalTimestamp(data, field) {
+      return !(field in data) || data[field] is timestamp;
+    }
+
+    function validOptionalHttpsUrl(data, field) {
+      return !(field in data) || data[field] == '' ||
+        (data[field] is string && data[field].matches('^https://.*'));
+    }
+
+    function validImageUrls(data) {
+      return data.imageUrls is list && data.imageUrls.size() <= 3 &&
+        (data.imageUrls.size() < 1 || (data.imageUrls[0] is string && data.imageUrls[0].matches('^https://.*'))) &&
+        (data.imageUrls.size() < 2 || (data.imageUrls[1] is string && data.imageUrls[1].matches('^https://.*'))) &&
+        (data.imageUrls.size() < 3 || (data.imageUrls[2] is string && data.imageUrls[2].matches('^https://.*')));
+    }
+
+    function validListingImagePath(path, sellerUid, listingId) {
+      return path is string &&
+        path.matches('^marketplace/' + sellerUid + '/' + listingId + '/image_[0-2](_[A-Za-z0-9]{32})?$');
+    }
+
+    function validListingImagePaths(data, listingId) {
+      return !('imagePaths' in data) || (
+        data.imagePaths is list && data.imagePaths.size() <= 3 &&
+        (data.imagePaths.size() < 1 || validListingImagePath(data.imagePaths[0], data.sellerUid, listingId)) &&
+        (data.imagePaths.size() < 2 || validListingImagePath(data.imagePaths[1], data.sellerUid, listingId)) &&
+        (data.imagePaths.size() < 3 || validListingImagePath(data.imagePaths[2], data.sellerUid, listingId))
+      );
+    }
+
+    function validMarketplace(data, listingId) {
+      return data.keys().hasAll([
+          'title', 'price', 'seller', 'contact', 'blockLotPhase',
+          'description', 'imageUrls', 'sellerUid'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'price', 'seller', 'contact', 'blockLotPhase',
+          'description', 'imageUrls', 'imagePaths', 'sellerUid', 'createdAt', 'updatedAt', 'availabilityStatus'
+        ]) &&
+        validString(data, 'title', 120) &&
+        ((data.price is number && data.price > 0 && data.price <= 1000000000) ||
+          (data.price is string && data.price.size() > 0 && data.price.size() <= 40)) &&
+        validString(data, 'seller', 100) && validString(data, 'contact', 50) &&
+        data.blockLotPhase is string && data.blockLotPhase.size() <= 120 && data.description is string &&
+        data.description.size() <= 2000 && validImageUrls(data) &&
+        validListingImagePaths(data, listingId) &&
+        (!('createdAt' in data) || data.createdAt is timestamp) &&
+        (!('availabilityStatus' in data) || data.availabilityStatus in ['AVAILABLE', 'SOLD']) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function validMarketplaceStatusUpdate(data) {
+      return data.availabilityStatus in ['AVAILABLE', 'SOLD'] &&
+        data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+
+    function marketplaceCreatedAtUnchanged() {
+      return (('createdAt' in resource.data) && ('createdAt' in request.resource.data) &&
+          request.resource.data.createdAt == resource.data.createdAt) ||
+        (!('createdAt' in resource.data) && !('createdAt' in request.resource.data));
+    }
+
+    function validMarketplaceOwnerPrice(value) {
+      return (value is number && value > 0 && value <= 999999999.99) ||
+        (value is string && value.matches('^[0-9]{1,9}(\\.[0-9]{1,2})?$'));
+    }
+
+    function validMarketplaceOwnerContact(value) {
+      return value is string && value.matches('^\\+63 [0-9]{10}$');
+    }
+
+    function validMarketplaceOwnerEdit(data, listingId, changedKeys) {
+      return owns('sellerUid') &&
+        data.sellerUid == resource.data.sellerUid &&
+        marketplaceCreatedAtUnchanged() &&
+        data.updatedAt is timestamp && data.updatedAt == request.time &&
+        changedKeys.hasOnly([
+          'title', 'price', 'contact', 'blockLotPhase', 'description',
+          'imageUrls', 'imagePaths', 'updatedAt'
+        ]) &&
+        (!changedKeys.hasAny(['title']) || validString(data, 'title', 75)) &&
+        (!changedKeys.hasAny(['price']) || validMarketplaceOwnerPrice(data.price)) &&
+        (!changedKeys.hasAny(['contact']) || validMarketplaceOwnerContact(data.contact)) &&
+        (!changedKeys.hasAny(['blockLotPhase']) ||
+          (data.blockLotPhase is string && data.blockLotPhase.size() <= 120)) &&
+        (!changedKeys.hasAny(['description']) || validString(data, 'description', 1000)) &&
+        (!changedKeys.hasAny(['imageUrls']) ||
+          (('imageUrls' in data) && validImageUrls(data))) &&
+        (!changedKeys.hasAny(['imagePaths']) ||
+          (('imagePaths' in data) && validListingImagePaths(data, listingId)));
+    }
+
+    function validChatPost(data) {
+      return data.keys().hasAll([
+          'senderName', 'message', 'isAnonymous', 'isLostAndFound',
+          'imageUrls', 'senderUid', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'senderName', 'message', 'isAnonymous', 'isLostAndFound',
+          'imageUrls', 'senderUid', 'createdAt', 'updatedAt', 'reactions', 'replies'
+        ]) &&
+        validString(data, 'senderName', 100) && validString(data, 'message', 4000) &&
+        data.isAnonymous is bool && data.isLostAndFound is bool &&
+        validImageUrls(data) && data.createdAt is timestamp &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+        (!('reactions' in data) || data.reactions is map) &&
+        (!('replies' in data) || data.replies is list);
+    }
+
+    function validConcern(data) {
+      return data.keys().hasAll([
+          'title', 'location', 'status', 'details', 'imageUrls', 'reporterUid', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'location', 'status', 'details', 'imageUrls', 'reporterUid', 'createdAt', 'updatedAt'
+        ]) &&
+        validString(data, 'title', 160) && data.location is string && data.location.size() <= 160 &&
+        data.status in ['Pending', 'In Progress', 'Resolved'] &&
+        data.details is string && data.details.size() <= 4000 &&
+        validImageUrls(data) && data.createdAt is timestamp &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function validReply(data) {
+      return data.keys().hasAll(['senderUid', 'senderName', 'text', 'createdAt']) &&
+        data.keys().hasOnly(['senderUid', 'senderName', 'text', 'createdAt']) &&
+        validString(data, 'senderUid', 128) && validString(data, 'senderName', 100) &&
+        validString(data, 'text', 2000) && data.createdAt is timestamp;
+    }
+
+    function validUser(data) {
+      return data.keys().hasAll([
+          'uid', 'email', 'username', 'accountStatus', 'createdAt', 'updatedAt', 'lastLoginAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid', 'email', 'username', 'accountStatus', 'createdAt', 'updatedAt', 'lastLoginAt',
+          'displayName', 'photoUrl', 'providerIds', 'emailVerified', 'termsAcceptedAt',
+          'privacyPolicyAcceptedAt', 'contact', 'block', 'lot', 'phase', 'role', 'isAdmin', 'roleRequestStatus', 'roleVerified',
+          'roleReviewedAt', 'requestedRole', 'proofDocumentPath', 'photoStoragePath', 'proofDocumentUrl',
+          'notifyMarketplace', 'notifyCommunityChat', 'notifyConcernsRequests',
+          'notifyAnnouncements', 'notifyAmenityReservations', 'notifyCommunityEvents',
+          'notifyEmergencyContactUpdates'
+        ]) &&
+        data.uid == request.auth.uid && validString(data, 'email', 320) &&
+        data.email.matches('^[^@]+@[^@]+\\.[^@]+$') &&
+        data.username is string && data.username.matches('^[A-Za-z0-9_]{3,30}$') &&
+        data.accountStatus in ['active', 'pending_verification'] &&
+        data.createdAt is timestamp && data.updatedAt is timestamp && data.lastLoginAt is timestamp &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120)) &&
+        validOptionalHttpsUrl(data, 'photoUrl') &&
+        (!('providerIds' in data) || (data.providerIds is list && data.providerIds.size() <= 10)) &&
+        (!('emailVerified' in data) || data.emailVerified is bool) &&
+        (!('termsAcceptedAt' in data) || data.termsAcceptedAt is timestamp) &&
+        (!('privacyPolicyAcceptedAt' in data) || data.privacyPolicyAcceptedAt is timestamp) &&
+        (!('notifyMarketplace' in data) || data.notifyMarketplace is bool) &&
+        (!('notifyCommunityChat' in data) || data.notifyCommunityChat is bool) &&
+        (!('notifyConcernsRequests' in data) || data.notifyConcernsRequests is bool) &&
+        (!('notifyAnnouncements' in data) || data.notifyAnnouncements is bool) &&
+        (!('notifyAmenityReservations' in data) || data.notifyAmenityReservations is bool) &&
+        (!('notifyCommunityEvents' in data) || data.notifyCommunityEvents is bool) &&
+        (!('notifyEmergencyContactUpdates' in data) || data.notifyEmergencyContactUpdates is bool) &&
+        validOptionalString(data, 'contact', 60) && validOptionalString(data, 'block', 80) &&
+        validOptionalString(data, 'lot', 80) && validOptionalString(data, 'phase', 80) &&
+        validOptionalString(data, 'role', 80) &&
+        (!('isAdmin' in data) || data.isAdmin is bool) &&
+        (!('roleRequestStatus' in data) || data.roleRequestStatus in ['none', 'pending', 'approved', 'rejected']) &&
+        (!('roleVerified' in data) || data.roleVerified is bool) &&
+        validOptionalTimestamp(data, 'roleReviewedAt') &&
+        (!('requestedRole' in data) || data.requestedRole in ['', 'Homeowner', 'HOA', 'Security', 'Property Management', 'Community Services']) &&
+        validOptionalString(data, 'proofDocumentPath', 300) &&
+        validOptionalString(data, 'photoStoragePath', 300) && validOptionalHttpsUrl(data, 'proofDocumentUrl');
+    }
+
+    function createdByCaller(data) {
+      return signedIn() && data.createdByUid == request.auth.uid && data.createdAt == request.time;
+    }
+
+    function creatorUnchanged() {
+      return (!('createdByUid' in resource.data) && !('createdByUid' in request.resource.data)) ||
+        (('createdByUid' in resource.data) && request.resource.data.createdByUid == resource.data.createdByUid);
+    }
+
+    function validUsernameReservation(data, username) {
+      return data.keys().hasAll(['uid', 'username', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'username', 'createdAt']) &&
+        data.uid == request.auth.uid && data.username == username &&
+        username.matches('^[a-z0-9_]{3,30}$') && data.createdAt is timestamp;
+    }
+
+    match /announcements/{id} {
+      allow get, list: if isAdmin() || (signedIn() && published(resource.data));
+      allow create: if canPublishCommunityContent() && validAnnouncement(request.resource.data);
+      allow update: if canPublishCommunityContent() && validAnnouncement(request.resource.data) &&
+        request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if canPublishCommunityContent();
+    }
+
+    match /amenity_reservations/{id} {
+      allow get, list: if isAdmin() || (signedIn() && published(resource.data));
+      allow create: if canPublishCommunityContent() && validReservation(request.resource.data);
+      allow update: if canPublishCommunityContent() && validReservation(request.resource.data) &&
+        request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if canPublishCommunityContent();
+    }
+
+    match /community_events/{id} {
+      allow get, list: if isAdmin() || (signedIn() && published(resource.data));
+      allow create: if canPublishCommunityContent() && validEvent(request.resource.data);
+      allow update: if canPublishCommunityContent() && validEvent(request.resource.data) &&
+        request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if canPublishCommunityContent();
+    }
+
+    match /emergency_contacts/{id} {
+      allow get, list: if isAdmin() || (signedIn() && published(resource.data) && resource.data.active == true);
+      allow create: if isAdmin() && validEmergencyContact(request.resource.data);
+      allow update: if isAdmin() && validEmergencyContact(request.resource.data) &&
+        request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
+    // Role requests are private to their requester and custom-claim admins.
+    // Cloud Functions/Admin SDK perform all writes after authorization checks.
+    match /roleRequests/{requestId} {
+      allow get, list: if isAdmin() || (signedIn() && resource.data.requesterUid == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    match /marketplace_items/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() &&
+        request.resource.data.sellerUid == request.auth.uid &&
+        request.resource.data.availabilityStatus == 'AVAILABLE' &&
+        request.resource.data.createdAt == request.time && validMarketplace(request.resource.data, id);
+      // A narrowly scoped status transition supports older listings with unrelated
+      // legacy fields and is checked before whole-document validation.
+      allow update: if (
+          owns('sellerUid') &&
+          request.resource.data.sellerUid == resource.data.sellerUid &&
+          validMarketplaceStatusUpdate(request.resource.data) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'availabilityStatus', 'updatedAt'
+          ])
+        ) || (
+          validMarketplaceOwnerEdit(
+            request.resource.data,
+            id,
+            request.resource.data.diff(resource.data).affectedKeys()
+          )
+        ) || (
+          isAdmin() && validMarketplace(request.resource.data, id)
+        );
+      allow delete: if isAdmin() || owns('sellerUid');
+    }
+
+    match /community_chat/{postId} {
+      allow read: if signedIn();
+      allow create: if signedIn() &&
+        request.resource.data.senderUid == request.auth.uid &&
+        !('reactions' in request.resource.data) && !('replies' in request.resource.data) &&
+        request.resource.data.createdAt == request.time && validChatPost(request.resource.data);
+      allow update: if validChatPost(request.resource.data) && (isAdmin() || (
+          owns('senderUid') &&
+          request.resource.data.senderUid == resource.data.senderUid &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['senderName', 'message', 'imageUrls', 'updatedAt'])
+        ));
+      allow delete: if isAdmin() || owns('senderUid');
+
+      match /replies/{replyId} {
+        allow read: if signedIn();
+        allow create: if signedIn() &&
+          exists(/databases/$(database)/documents/community_chat/$(postId)) &&
+          request.resource.data.senderUid == request.auth.uid &&
+          request.resource.data.createdAt == request.time && validReply(request.resource.data);
+        allow update: if validReply(request.resource.data) && (isAdmin() || (
+          owns('senderUid') &&
+          request.resource.data.senderUid == resource.data.senderUid &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text'])
+        ));
+        allow delete: if isAdmin() || owns('senderUid');
+      }
+
+      match /reactions/{uid} {
+        allow read: if signedIn();
+        allow create, update: if signedIn() && request.auth.uid == uid &&
+          exists(/databases/$(database)/documents/community_chat/$(postId)) &&
+          request.resource.data.keys().hasOnly(['uid', 'reaction', 'updatedAt']) &&
+          request.resource.data.uid == request.auth.uid &&
+          validString(request.resource.data, 'reaction', 40) &&
+          request.resource.data.updatedAt == request.time;
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+    }
+
+    match /homeowner_concerns/{id} {
+      allow read: if isAdmin() || owns('reporterUid');
+      allow create: if signedIn() &&
+        request.resource.data.reporterUid == request.auth.uid &&
+        request.resource.data.status == 'Pending' &&
+        request.resource.data.createdAt == request.time && validConcern(request.resource.data);
+      allow update: if isAdmin() && validConcern(request.resource.data) || (
+        owns('reporterUid') &&
+        request.resource.data.reporterUid == resource.data.reporterUid &&
+        request.resource.data.status == resource.data.status &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['title', 'location', 'details', 'imageUrls', 'updatedAt']) &&
+        validConcern(request.resource.data)
+      );
+      allow delete: if isAdmin() || owns('reporterUid');
+    }
+
+    match /users/{userId} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      allow create: if signedIn() && request.auth.uid == userId &&
+        validUser(request.resource.data) && request.resource.data.role == 'Visitor' &&
+        request.resource.data.isAdmin == false && request.resource.data.roleRequestStatus == 'none' &&
+        request.resource.data.accountStatus == 'active' &&
+        (!('email' in request.auth.token) || request.resource.data.email == request.auth.token.email);
+      // Role, isAdmin, and role-request state are server-managed. Admin SDK
+      // trusted backend writes bypass rules; a client custom claim alone grants no write path.
+      allow update: if signedIn() && request.auth.uid == userId &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'updatedAt', 'lastLoginAt', 'emailVerified', 'providerIds', 'displayName',
+          'photoUrl', 'photoStoragePath', 'contact', 'block', 'lot', 'phase', 'proofDocumentPath', 'proofDocumentUrl',
+          'notifyMarketplace', 'notifyCommunityChat', 'notifyConcernsRequests',
+          'notifyAnnouncements', 'notifyAmenityReservations', 'notifyCommunityEvents',
+          'notifyEmergencyContactUpdates'
+        ]) &&
+        validUser(request.resource.data);
+      allow delete: if false;
+
+      match /fcmTokens/{tokenId} {
+        allow read: if false;
+        allow create, update: if signedIn() && request.auth.uid == userId &&
+          request.resource.data.keys().hasOnly(['token', 'platform', 'updatedAt']) &&
+          validString(request.resource.data, 'token', 4096) &&
+          request.resource.data.platform == 'android' &&
+          request.resource.data.updatedAt == request.time;
+        allow delete: if signedIn() && request.auth.uid == userId;
+      }
+    }
+
+    match /usernames/{username} {
+      // Signup performs the reservation transaction after Firebase Auth creates the user.
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() &&
+        !exists(/databases/$(database)/documents/usernames/$(username)) &&
+        validUsernameReservation(request.resource.data, username);
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Outer Glow / Ring -->
+    <path
+        android:pathData="M60,60m-46,0a46,46 0,1 1,92 0a46,46 0,1 1,-92 0"
+        android:strokeWidth="2.5"
+        android:strokeAlpha="0.4"
+        android:strokeColor="#818CF8" />
+
+    <!-- Shield base -->
+    <path
+        android:pathData="M60,24 C 78,24 88,32 88,48 C 88,72 68,90 60,96 C 52,90 32,72 32,48 C 32,32 42,24 60,24 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="88"
+                android:endY="96"
+                android:startX="32"
+                android:startY="24"
+                android:type="linear">
+                <item android:color="#FF6366F1" android:offset="0.0" />
+                <item android:color="#FF4F46E5" android:offset="0.5" />
+                <item android:color="#FF4338CA" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Shield Inner Core / Keyhole -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M60,42 A 8,8 0 1,0 60,58 A 8,8 0 1,0 60,42 Z M57,56 L55,72 L65,72 L63,56 Z" />
+
+    <!-- Shield Star Accent -->
+    <path
+        android:fillColor="#FF38BDF8"
+        android:pathData="M60,30 L62,35 L67,36 L63,40 L64,45 L60,42 L56,45 L57,40 L53,36 L58,35 Z" />
+
+</vector>

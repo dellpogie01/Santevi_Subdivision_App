@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+
+    <!-- Soft glow halo -->
+    <path
+        android:pathData="M48,48m-42,0a42,42 0,1 1,84 0a42,42 0,1 1,-84 0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="90"
+                android:endY="90"
+                android:startX="6"
+                android:startY="6"
+                android:type="linear">
+                <item android:color="#2606B6D4" android:offset="0.0" />
+                <item android:color="#1A6366F1" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Main Diamond/Shield Plaque -->
+    <path
+        android:pathData="M48,16 L76,32 L76,64 L48,80 L20,64 L20,32 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="76"
+                android:endY="80"
+                android:startX="20"
+                android:startY="16"
+                android:type="linear">
+                <item android:color="#FF0EA5E9" android:offset="0.0" />
+                <item android:color="#FF6366F1" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- User Silhouette -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M48,32 C 52.42,32 56,35.58 56,40 C 56,44.42 52.42,48 48,48 C 43.58,48 40,44.42 40,40 C 40,35.58 43.58,32 48,32 Z M48,52 C 55.33,52 64,55.67 64,61 L64,65 L32,65 L32,61 C 32,55.67 40.67,52 48,52 Z" />
+
+    <!-- Plus / New Member Badge -->
+    <path
+        android:fillColor="#FF22C55E"
+        android:pathData="M66,28m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M65,24 L67,24 L67,27 L70,27 L70,29 L67,29 L67,32 L65,32 L65,29 L62,29 L62,27 L65,27 Z" />
+
+</vector>

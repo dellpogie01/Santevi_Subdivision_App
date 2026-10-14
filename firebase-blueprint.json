@@ -1,0 +1,34 @@
+{
+  "entities": {
+    "User": {
+      "collection": "users",
+      "documentId": "{userId}",
+      "description": "User profile documents keyed by authenticated Firebase UID",
+      "fields": {
+        "uid": { "type": "string", "required": true },
+        "email": { "type": "string", "required": true },
+        "username": { "type": "string", "required": true },
+        "displayName": { "type": "string", "required": false },
+        "photoUrl": { "type": "string", "required": false },
+        "providerIds": { "type": "array", "required": false },
+        "emailVerified": { "type": "boolean", "required": false },
+        "createdAt": { "type": "timestamp", "required": true },
+        "updatedAt": { "type": "timestamp", "required": false },
+        "lastLoginAt": { "type": "timestamp", "required": false },
+        "termsAcceptedAt": { "type": "timestamp", "required": false },
+        "privacyPolicyAcceptedAt": { "type": "timestamp", "required": false },
+        "accountStatus": { "type": "string", "required": true }
+      }
+    },
+    "UsernameReservation": {
+      "collection": "usernames",
+      "documentId": "{username}",
+      "description": "Enforces username uniqueness mapping lowercase username to user UID",
+      "fields": {
+        "username": { "type": "string", "required": true },
+        "uid": { "type": "string", "required": true },
+        "createdAt": { "type": "timestamp", "required": true }
+      }
+    }
+  }
+}

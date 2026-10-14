@@ -1,0 +1,42 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isTrustedAdmin() {
+      return request.auth != null && ('admin' in request.auth.token) && request.auth.token.admin == true;
+    }
+
+    match /profile-verification/{userId}/{fileName} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isTrustedAdmin());
+      allow create: if request.auth != null && request.auth.uid == userId &&
+        request.resource.size > 0 && request.resource.size <= 10 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+      allow update: if false;
+      allow delete: if request.auth != null && (request.auth.uid == userId || isTrustedAdmin());
+    }
+
+    match /profile-images/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == userId &&
+        request.resource.size > 0 && request.resource.size <= 10 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && (request.auth.uid == userId || isTrustedAdmin());
+    }
+
+    match /marketplace/{userId}/{listingId}/{imageName} {
+      // Marketplace listings are restricted to signed-in community members.
+      allow read: if request.auth != null;
+      allow create: if request.auth != null &&
+        request.auth.uid == userId &&
+        imageName.matches('image_[0-2](_[A-Za-z0-9]{32})?') &&
+        request.resource != null &&
+        request.resource.size > 0 &&
+        request.resource.size <= 10 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+      allow update: if false;
+      allow delete: if request.auth != null &&
+        request.auth.uid == userId &&
+        imageName.matches('image_[0-2](_[A-Za-z0-9]{32})?');
+    }
+  }
+}

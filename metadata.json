@@ -1,0 +1,6 @@
+{
+  "name": "Nexus",
+  "description": "Modern Android application foundation featuring Firebase Authentication, Google Sign-In, and Cloud Firestore user profiles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
