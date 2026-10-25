@@ -154,3 +154,32 @@ reports/
 # firestore.indexes.json
 # firebase.json
 # ==========================================
+
+# Prevent accidental commits of local credentials
+.env
+.env.*
+!.env.example
+!.env.template
+secrets.properties
+keystore.properties
+key.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+*.asc
+**/google-services.json
+**/GoogleService-Info.plist
+**/service-account*.json
+**/*-service-account*.json
+**/serviceAccountKey.json
+**/google-credentials.json
+**/firebase-adminsdk*.json
+**/.aws/credentials
+**/.ssh/id_*
+*.tfvars
+*.tfvars.json
+terraform.tfstate
+terraform.tfstate.*
